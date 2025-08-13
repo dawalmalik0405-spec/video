@@ -8,10 +8,8 @@ services:
       pip3 install -r requirement.txt
       npm install
     startCommand: |
-      python3 tranlator.py &
+      WS_URL="ws://localhost:$PORT" python3 tranlator.py &
       node server.js
     envVars:
-      - key: WS_URL
-        value: wss://PLACEHOLDER.onrender.com
       - key: VOSK_MODEL_URL
         value: https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip
