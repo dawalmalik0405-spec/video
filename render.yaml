@@ -1,10 +1,11 @@
 services:
   - type: web
-    name: video-call-app
+    name: video-call-hindi
     env: docker
     plan: free
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: WS_URL
-        value: wss://video-call-app.onrender.com
+        value: wss://video-call-hindi.onrender.com
       - key: VOSK_MODEL_URL
         value: https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip
