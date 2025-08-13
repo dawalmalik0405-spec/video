@@ -1,0 +1,7 @@
+vosk
+gTTS
+pygame
+deep-translator
+pyaudio
+websockets
+opencv-python
