@@ -12,13 +12,14 @@ const allusers = {};
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-app.use(express.static("public"));
+app.use(express.static(join(__dirname, "public")));
+
 
 
 
 app.get("/", (req, res) => {
   console.log("GET Request /");
-  res.sendFile(join(__dirname + "/app/index.html"));
+    res.sendFile(join(__dirname, "app", "index.html"));
 });
 
 io.on("connection", (socket) => {
@@ -57,7 +58,8 @@ io.on("connection", (socket) => {
 // -----------------
 // NEW: WebSocket for Python connection
 // -----------------
-const wss = new WebSocketServer({ port: 8765 });
+const wss = new WebSocketServer({ server });
+
 
 wss.on("connection", (ws) => {
   console.log("Python connected to WebSocket");
@@ -80,9 +82,8 @@ wss.on("connection", (ws) => {
 
 // -----------------
 
-server.listen(9000, () => {
-  console.log(`Server listening on port 9000`);
-  console.log(` http://localhost:9000 `);
+const PORT = process.env.PORT || 9000;
+server.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
-
 
