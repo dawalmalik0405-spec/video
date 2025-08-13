@@ -1,25 +1,29 @@
-# Base image with Node.js
-FROM node:22
+# Base image with Node.js and Python
+FROM node:18-bullseye
 
 # Install Python
-RUN apt-get update && apt-get install -y python3 python3-pip python3-dev build-essential
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv
 
-# Set working directory
+# Set workdir
 WORKDIR /app
 
-# Copy Node.js files first (for caching layers)
-COPY package.json package-lock.json ./
+# Create venv & activate for pip installs
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install Node.js dependencies
+COPY package*.json ./
 RUN npm install
 
-# Copy Python requirements
+# Install Python dependencies inside venv
 COPY requirement.txt ./
-RUN pip3 install --no-cache-dir -r requirement.txt
+RUN pip install --no-cache-dir -r requirement.txt
 
-# Copy all app files
+# Copy all files
 COPY . .
 
-# Expose the port
+# Expose port
 EXPOSE 10000
 
-# Start both Python and Node together
+# Start Python and Node.js together
 CMD python3 tranlator.py & node server.js
