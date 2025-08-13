@@ -1,15 +1,10 @@
 services:
   - type: web
-    name: video-call-app-sa
-    env: node
+    name: video-call-app
+    env: docker
     plan: free
-    buildCommand: |
-      apt-get update && apt-get install -y python3 python3-pip
-      pip3 install -r requirement.txt
-      npm install
-    startCommand: |
-      WS_URL="ws://localhost:$PORT" python3 tranlator.py &
-      node server.js
     envVars:
+      - key: WS_URL
+        value: wss://video-call-app.onrender.com
       - key: VOSK_MODEL_URL
         value: https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip
