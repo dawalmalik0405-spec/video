@@ -52,3 +52,8 @@ typings/
 
 # dotenv environment variables file
 .env
+
+
+model/
+__pycache__/
+*.pyc
