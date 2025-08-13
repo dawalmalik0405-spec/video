@@ -13,6 +13,8 @@ const allusers = {};
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.use(express.static("public"));
+res.sendFile(join(__dirname + "/app/index.html"));
+
 
 app.get("/", (req, res) => {
   console.log("GET Request /");
@@ -82,3 +84,4 @@ server.listen(9000, () => {
   console.log(`Server listening on port 9000`);
   console.log(` http://localhost:9000 `);
 });
+
