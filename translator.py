@@ -140,9 +140,15 @@ class WSSender:
         except Exception as e:
             print(f"[WS enqueue error] {e}")
 
-    async def stop(self):
-        self._stop.set()
-        await self._queue.put(None)
+   async def stop(self):
+    self._stop.set()
+    await self._queue.put(None)
+    try:
+        if self._ws is not None:
+            await self._ws.close(code=1000, reason="Normal Closure")
+    except Exception as e:
+        print(f"[WS close error] {e}")
+
 
 
 # -------------------
@@ -217,4 +223,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
 
