@@ -56,6 +56,15 @@ wss.on("connection", (ws) => {
       console.error("Invalid JSON from Python:", err);
     }
   });
+
+  ws.on("close", (code, reason) => {
+    if (code < 1000 || code > 1015) {
+      console.warn(`⚠️ Ignoring invalid close code: ${code}`);
+      return;
+    }
+    console.log(`Python disconnected with code ${code}, reason: ${reason}`);
+  });
+
   ws.on("error", (err) => {
     console.error("WebSocket error:", err);
   });
@@ -84,3 +93,4 @@ const PORT = process.env.PORT || 9000;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
