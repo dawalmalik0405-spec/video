@@ -9,41 +9,44 @@ from tempfile import NamedTemporaryFile
 # -------------------
 # CONFIG
 # -------------------
-WS_URL = os.getenv("WS_URL", "wss://video-call-hindi.onrender.com")
+WS_URL = os.getenv("WS_URL", "wss://video-call-app-sa.onrender.com")
 PLAY_LOCALLY = False
 SOURCE_LANG = "hi"
 TARGET_LANG = "en"
 
 MODEL_DIR = "model"
-MODEL_URL = os.getenv("VOSK_MODEL_URL", "https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip")
+MODEL_URL = os.getenv("VOSK_MODEL_URL", "https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip")
 
 logging.getLogger("vosk").setLevel(logging.ERROR)
 
 
 # -------------------
-# Vosk model bootstrap
+# FIX: Ensure Vosk model without FileExistsError
 # -------------------
 def ensure_vosk_model():
     if os.path.isdir(MODEL_DIR):
-        print(f"✅ Vosk model already present at ./{MODEL_DIR}")
+        print(f"✅ Vosk model already present at {MODEL_DIR}")
         return
 
     print("📦 Vosk model not found. Downloading now...")
     zip_path = "model.zip"
     urllib.request.urlretrieve(MODEL_URL, zip_path)
-    print("✅ Download complete. Extracting...")
 
+    print("✅ Download complete. Extracting...")
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(".")
+        for member in zip_ref.namelist():
+            target_path = os.path.join(".", member)
+            if os.path.exists(target_path):
+                continue  # skip existing files
+            zip_ref.extract(member, ".")
 
     os.remove(zip_path)
 
-    # Rename the extracted folder to MODEL_DIR
     extracted = [d for d in os.listdir(".") if os.path.isdir(d) and ("vosk-model" in d)]
     if extracted:
         os.rename(extracted[0], MODEL_DIR)
 
-    print(f"✅ Vosk model ready at ./{MODEL_DIR}")
+    print(f"✅ Vosk model ready at {MODEL_DIR}")
 
 
 ensure_vosk_model()
@@ -57,7 +60,7 @@ vosk_model = load_vosk_model()
 
 
 # -------------------
-# Translation + TTS
+# Utilities
 # -------------------
 def translate(text, source_lang=SOURCE_LANG, target_lang=TARGET_LANG):
     if not text:
@@ -102,11 +105,12 @@ def speak_local(audio_bytes):
 
 
 # -------------------
-# Persistent WebSocket sender
+# Persistent WebSocket sender with safe close
 # -------------------
 class WSSender:
     def __init__(self, url: str):
         self.url = url
+        self._ws = None
         self._queue = asyncio.Queue()
         self._stop = asyncio.Event()
 
@@ -117,16 +121,18 @@ class WSSender:
             try:
                 print(f"[WS] Connecting to {self.url} ...")
                 async with websockets.connect(self.url, max_size=None, ping_interval=20, ping_timeout=20) as ws:
+                    self._ws = ws
                     print("[WS] Connected.")
                     backoff = 1
+
                     while not self._stop.is_set():
                         try:
                             msg = await asyncio.wait_for(self._queue.get(), timeout=20.0)
                         except asyncio.TimeoutError:
                             continue
                         if msg is None:
-                            await ws.close(code=1000, reason="Normal Closure")  # ✅ Valid close code
-                            print("[WS] Closed (app requested).")
+                            await ws.close(code=1000, reason="Normal Closure")  # ✅ Always valid close code
+                            print("[WS] Closed cleanly with code 1000")
                             return
                         await ws.send(msg)
             except Exception as e:
@@ -140,28 +146,22 @@ class WSSender:
         except Exception as e:
             print(f"[WS enqueue error] {e}")
 
-   async def stop(self):
-    self._stop.set()
-    await self._queue.put(None)
-    try:
-        if self._ws is not None:
-            await self._ws.close(code=1000, reason="Normal Closure")
-    except Exception as e:
-        print(f"[WS close error] {e}")
-
+    async def stop(self):
+        self._stop.set()
+        await self._queue.put(None)
 
 
 # -------------------
 # Main audio loop
 # -------------------
-async def translate_loop(ws_sender: WSSender):
+async def translate_loop(ws_sender: WSSender, source_lang=SOURCE_LANG, target_lang=TARGET_LANG):
     recognizer = KaldiRecognizer(vosk_model, 16000)
     audio = pyaudio.PyAudio()
     stream = audio.open(format=pyaudio.paInt16, channels=1, rate=16000,
                         input=True, frames_per_buffer=2048)
     stream.start_stream()
 
-    print(f"🎤 Listening... Translating from {SOURCE_LANG} → {TARGET_LANG} (Ctrl+C to stop)")
+    print(f"🎤 Listening... Translating from {source_lang} → {target_lang} (Ctrl+C to stop)")
     try:
         while True:
             data = stream.read(4096, exception_on_overflow=False)
@@ -172,10 +172,10 @@ async def translate_loop(ws_sender: WSSender):
                     continue
 
                 print(f"[Recognized] {text}")
-                translated = translate(text, SOURCE_LANG, TARGET_LANG).strip()
+                translated = translate(text, source_lang, target_lang).strip()
                 print(f"[Translated] {translated}")
 
-                mp3_bytes = tts_mp3_bytes(translated, lang=TARGET_LANG)
+                mp3_bytes = tts_mp3_bytes(translated, lang=target_lang)
                 if not mp3_bytes:
                     continue
 
@@ -187,13 +187,15 @@ async def translate_loop(ws_sender: WSSender):
                     "type": "translation",
                     "text": translated,
                     "audio_b64": audio_b64,
-                    "src": SOURCE_LANG,
-                    "tgt": TARGET_LANG,
+                    "src": source_lang,
+                    "tgt": target_lang,
                     "timestamp": int(time.time() * 1000)
                 }
                 await ws_sender.send_json(payload)
     except KeyboardInterrupt:
-        print("Stopping...")
+        print("Stopping mic loop...")
+    except Exception as e:
+        print(f"[Audio Loop Error] {e}")
     finally:
         try:
             stream.stop_stream()
@@ -209,7 +211,7 @@ async def translate_loop(ws_sender: WSSender):
 async def main():
     sender = WSSender(WS_URL)
     ws_task = asyncio.create_task(sender.start())
-    mic_task = asyncio.create_task(translate_loop(sender))
+    mic_task = asyncio.create_task(translate_loop(sender, SOURCE_LANG, TARGET_LANG))
 
     try:
         await mic_task
@@ -222,6 +224,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        pass
-
-
+        print("Exiting cleanly...")
