@@ -48,6 +48,7 @@ io.on("connection", (socket) => {
 const wss = new WebSocketServer({ server });
 wss.on("connection", (ws) => {
   console.log("Python connected to WebSocket");
+
   ws.on("message", (message) => {
     try {
       const data = JSON.parse(message.toString());
@@ -58,9 +59,11 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", (code, reason) => {
-    if (code < 1000 || code > 1015) {
-      console.warn(`⚠️ Ignoring invalid close code: ${code}`);
-      return;
+    // Sanitize code if invalid
+    if ((code < 1000 || code > 1015) && (code < 3000 || code > 4999)) {
+      console.warn(`⚠️ Received invalid close code from client: ${code} — treating as 1000`);
+      code = 1000;
+      reason = "Normal Closure (forced)";
     }
     console.log(`Python disconnected with code ${code}, reason: ${reason}`);
   });
@@ -69,6 +72,7 @@ wss.on("connection", (ws) => {
     console.error("WebSocket error:", err);
   });
 });
+
 
 // Start Python translator script
 const pythonProcess = spawn("python3", ["translator.py"], {
@@ -93,4 +97,5 @@ const PORT = process.env.PORT || 9000;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
 
