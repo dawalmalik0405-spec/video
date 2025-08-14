@@ -9,7 +9,7 @@ from tempfile import NamedTemporaryFile
 # -------------------
 # CONFIG
 # -------------------
-WS_URL = os.getenv("WS_URL", "wss://video-call-app-5e1v.onrender.com")
+WS_URL = os.getenv("WS_URL")
 PLAY_LOCALLY = False
 SOURCE_LANG = "hi"
 TARGET_LANG = "en"
@@ -225,6 +225,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Exiting cleanly...")
+
 
 
 
