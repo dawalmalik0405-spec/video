@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir -r requirement.txt
 COPY . .
 
 # Environment variables (match updated translator.py)
-ENV WS_URL=wss://video-call-app.onrender.com
+ENV WS_URL=wss://video-call-app-oihz.onrender.com
 ENV VOSK_MODEL_URL=https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip
 
 # Expose the app port
