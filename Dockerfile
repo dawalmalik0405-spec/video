@@ -28,8 +28,9 @@ RUN pip install --no-cache-dir -r requirement.txt
 COPY . .
 
 # Environment variables
-ENV WS_URL=wss://video-call-app-sa.onrender.com
-ENV VOSK_MODEL_URL=https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip
+ENV WS_URL=wss://video-call-hindi.onrender.com
+ENV VOSK_MODEL_URL=https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip
+
 
 # Expose port
 EXPOSE 10000
