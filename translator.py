@@ -9,13 +9,13 @@ from tempfile import NamedTemporaryFile
 # -------------------
 # CONFIG
 # -------------------
-WS_URL = os.getenv("WS_URL", "wss://video-call-app-sa.onrender.com")
+WS_URL = os.getenv("WS_URL", "wss://video-call-hindi.onrender.com")
 PLAY_LOCALLY = False
 SOURCE_LANG = "hi"
 TARGET_LANG = "en"
 
 MODEL_DIR = "model"
-MODEL_URL = os.getenv("VOSK_MODEL_URL", "https://alphacephei.com/vosk/models/vosk-model-small-hi-0.22.zip")
+MODEL_URL = os.getenv("VOSK_MODEL_URL", "https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip")
 
 logging.getLogger("vosk").setLevel(logging.ERROR)
 
@@ -217,3 +217,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         pass
+
