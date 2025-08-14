@@ -16,24 +16,23 @@ WORKDIR /app
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Node.js dependencies
+# Copy package.json & install Node.js dependencies
 COPY package*.json ./
 RUN npm install
 
-# Install Python dependencies inside venv
+# Copy requirements.txt & install Python dependencies inside venv
 COPY requirement.txt ./
 RUN pip install --no-cache-dir -r requirement.txt
 
 # Copy all files
 COPY . .
 
-# Environment variables
-ENV WS_URL=wss://video-call-hindi.onrender.com
+# Environment variables (match updated translator.py)
+ENV WS_URL=wss://video-call-app.onrender.com
 ENV VOSK_MODEL_URL=https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip
 
-
-# Expose port
+# Expose the app port
 EXPOSE 10000
 
-# Start Python and Node.js together
+# Start Python translator and Node server together
 CMD python3 translator.py & node server.js
