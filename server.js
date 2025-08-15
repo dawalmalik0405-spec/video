@@ -79,7 +79,7 @@ const pythonProcess = spawn("python3", ["translator.py"], {
   cwd: __dirname,
   env: {
     ...process.env,
-    WS_URL: "ws://localhost:" + (process.env.PORT || 9000)
+    WS_URL: process.env.WS_URL
   }
 });
 
@@ -97,5 +97,6 @@ const PORT = process.env.PORT || 9000;
 server.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
 });
+
 
 
