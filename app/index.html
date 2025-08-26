@@ -2,53 +2,86 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Calling App</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <script src="/js/socket.io.js" defer></script>
-    <script src="/js/main.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Calling App</title>
+
+  <link rel="stylesheet" href="/css/style.css" />
+
+  <!-- Load Socket.IO client from the server-provided path -->
+  <script src="/socket.io/socket.io.js" defer></script>
+  <!-- App logic -->
+  <script src="/js/main.js" defer></script>
 </head>
 
 <body>
-    <div class="window-frame">
-        <div class="window-bar">
-            <span class="dot red"></span>
-            <span class="dot yellow"></span>
-            <span class="dot green"></span>
-            <span class="window-bar-title">Video Call App</span>
-        </div>
-        <main class="main-container">
-            <aside class="caller-list-wrapper">
-                <h1 class="caller-list-heading h-font">Contacts</h1>
-                <ul id="allusers" class="caller-list">
-                    <li>
-                        <button class="call-btn"><img width="20" src="/images/phone.png" alt=""></button>
-                    </li>
-                </ul>
-            </aside>
-            <section class="video-call-container">
-                <div class="username-input">
-                    <input id="username" type="text" placeholder="Enter Username"><button
-                        id="create-user">Create</button>
-                </div>
-                <div class="video-streams">
-
-                    <div class="local-video" data-label="You">
-                        <video id="localVideo" autoplay muted playsinline></video>
-                    </div>
-                    <div class="remote-video" data-label="Remote">
-                        <video id="remoteVideo" autoplay  playsinline></video>
-                    </div>
-                </div>
-                <div class="floating-controls">
-                    <button id="end-call-btn" class="call call-disconnect d-none">
-                        <img src="/images/phone-disconnect.png" alt="">
-                    </button>
-                </div>
-            </section>
-        </main>
+  <div class="window-frame">
+    <div class="window-bar">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+      <span class="window-bar-title">Video Call App</span>
     </div>
+
+
+
+
+    <main class="main-container">
+      <aside class="caller-list-wrapper">
+        <h1 class="caller-list-heading h-font">Contacts</h1>
+        <ul id="allusers" class="caller-list">
+          <!-- Populated dynamically by main.js -->
+        </ul>
+      </aside>
+
+      <div class="lang-select">
+        <label>Source Language:</label>
+        <select id="srcLang">
+          <option value="en">English</option>
+          <option value="hi">Hindi</option>
+          <option value="de">German</option>
+          <option value="zh-cn">Chinese</option>
+        </select>
+
+        <label>Target Language:</label>
+        <select id="tgtLang">
+          <option value="hi">Hindi</option>
+          <option value="en">English</option>
+          <option value="de">German</option>
+          <option value="zh-CN">Chinese</option>
+        </select>
+
+        <button id="setLangBtn">Set Languages</button>
+      </div>
+
+      <section class="video-call-container">
+        <div class="username-input">
+          <input id="username" type="text" placeholder="Enter Username" />
+          <button id="create-user" type="button">Create</button>
+        </div>
+
+        <div class="video-streams">
+          <div class="local-video" data-label="You">
+            <video id="localVideo" autoplay muted playsinline></video>
+          </div>
+
+          <div class="remote-container" style="position: relative; display: inline-block;">
+            <div class="remote-label">Remote</div>
+            <video id="remoteVideo" autoplay playsinline></video>
+            <!-- subtitle element will be injected by main.js if absent -->
+          </div>
+
+          <div class="controls">
+            <button id="end-call-btn" class="end-call-btn" type="button" aria-label="End call" title="End call" style="display: none;">
+              <img src="/images/phone-disconnect.jpeg" width="20" height="20" alt="End call" />
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+
 </body>
 
 </html>
