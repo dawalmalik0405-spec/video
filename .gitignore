@@ -63,7 +63,7 @@ __pycache__/
 *.tmp
 
 # Large model directory (download at runtime)
-model/
+models/
 *.zip
 
 # IDE / OS files
