@@ -79,7 +79,7 @@ socket.on("end-call", ({ from, to }) => {
 // -----------------
 // NEW: WebSocket for Python connection
 // -----------------
-const wss = new WebSocketServer({ port: 8765 });
+const wss = new WebSocketServer({ port: 8765, host: "0.0.0.0" });
 
 let pythonWs = null;
 
@@ -114,4 +114,5 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server listening on port ${PORT}`);
   console.log(`🌍 Public URL will be provided by Railway`);
 });
+
 
