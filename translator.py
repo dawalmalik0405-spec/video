@@ -63,21 +63,29 @@ MODEL_URLS = {
 def download_and_extract_model(url, target_dir):
     os.makedirs(target_dir, exist_ok=True)
     zip_path = os.path.join(target_dir, "model.zip")
-    if not os.path.exists(zip_path):
-        print(f"⬇️ Downloading model from {url} ...")
-        r = requests.get(url, stream=True)
-        with open(zip_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
+    
+    if os.path.exists(zip_path):
+        os.remove(zip_path)  # remove corrupted/incomplete zip
+    
+    print(f"⬇️ Downloading model from {url} ...")
+    r = requests.get(url, stream=True)
+    r.raise_for_status()
+    with open(zip_path, "wb") as f:
+        for chunk in r.iter_content(chunk_size=8192):
+            f.write(chunk)
+    
     # Extract
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         zip_ref.extractall(target_dir)
-    # After extraction, the actual model folder is usually nested inside
-    extracted_dirs = [d for d in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, d)) and d != "__pycache__"]
+    
+    # Get extracted folder
+    extracted_dirs = [d for d in os.listdir(target_dir) 
+                      if os.path.isdir(os.path.join(target_dir, d)) and d != "__pycache__"]
     if extracted_dirs:
         model_path = os.path.join(target_dir, extracted_dirs[0])
     else:
         model_path = target_dir
+    
     return model_path
 
 def load_vosk_model():
