@@ -1,7 +1,8 @@
+pyaudio
 vosk
-webrtcvad
 deep-translator
 gTTS
 pygame
+webrtcvad
 websockets
-pyaudio
+requests
