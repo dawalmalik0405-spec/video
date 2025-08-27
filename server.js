@@ -108,7 +108,10 @@ wss.on("connection", (ws) => {
 
 // -----------------
 
-server.listen(9000, () => {
-  console.log(`Server listening on port 9000`);
-  console.log(` http://localhost:9000 `);
+const PORT = process.env.PORT || 9000;
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server listening on port ${PORT}`);
+  console.log(`🌍 Public URL will be provided by Railway`);
 });
+
