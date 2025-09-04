@@ -6,15 +6,14 @@ import base64
 import asyncio
 import time
 from deep_translator import GoogleTranslator
-from vosk import Model, KaldiRecognizer
 from gtts import gTTS
 import pygame
 from tempfile import NamedTemporaryFile
 import webrtcvad
 import threading
 import websockets
-import zipfile
-import requests
+
+import speech_recognition as sr 
 
 # ===================== CONFIG =====================
 WS_URL = "ws://localhost:8765"  # Node.js WebSocket server
@@ -53,54 +52,54 @@ def normalize_lang(code: str) -> str:
 logging.getLogger("vosk").setLevel(logging.ERROR)
 
 # ---------------- Download & load Vosk model ----------------
-MODEL_URLS = {
-    "en": "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip",
-    "hi": "https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip",
-    "zh-CN": "https://alphacephei.com/vosk/models/vosk-model-cn-0.22.zip",
-    "de": "https://alphacephei.com/vosk/models/vosk-model-de-0.21.zip",
-}
+# MODEL_URLS = {
+#     "en": "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22.zip",
+#     "hi": "https://alphacephei.com/vosk/models/vosk-model-hi-0.22.zip",
+#     "zh-CN": "https://alphacephei.com/vosk/models/vosk-model-cn-0.22.zip",
+#     "de": "https://alphacephei.com/vosk/models/vosk-model-de-0.21.zip",
+# }
 
-def download_and_extract_model(url, target_dir):
-    os.makedirs(target_dir, exist_ok=True)
-    zip_path = os.path.join(target_dir, "model.zip")
+# def download_and_extract_model(url, target_dir):
+#     os.makedirs(target_dir, exist_ok=True)
+#     zip_path = os.path.join(target_dir, "model.zip")
     
-    if os.path.exists(zip_path):
-        os.remove(zip_path)  # remove corrupted/incomplete zip
+#     if os.path.exists(zip_path):
+#         os.remove(zip_path)  # remove corrupted/incomplete zip
     
-    print(f"⬇️ Downloading model from {url} ...")
-    r = requests.get(url, stream=True)
-    r.raise_for_status()
-    with open(zip_path, "wb") as f:
-        for chunk in r.iter_content(chunk_size=8192):
-            f.write(chunk)
+#     print(f"⬇️ Downloading model from {url} ...")
+#     r = requests.get(url, stream=True)
+#     r.raise_for_status()
+#     with open(zip_path, "wb") as f:
+#         for chunk in r.iter_content(chunk_size=8192):
+#             f.write(chunk)
     
-    # Extract
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(target_dir)
+#     # Extract
+#     with zipfile.ZipFile(zip_path, "r") as zip_ref:
+#         zip_ref.extractall(target_dir)
     
-    # Get extracted folder
-    extracted_dirs = [d for d in os.listdir(target_dir) 
-                      if os.path.isdir(os.path.join(target_dir, d)) and d != "__pycache__"]
-    if extracted_dirs:
-        model_path = os.path.join(target_dir, extracted_dirs[0])
-    else:
-        model_path = target_dir
+#     # Get extracted folder
+#     extracted_dirs = [d for d in os.listdir(target_dir) 
+#                       if os.path.isdir(os.path.join(target_dir, d)) and d != "__pycache__"]
+#     if extracted_dirs:
+#         model_path = os.path.join(target_dir, extracted_dirs[0])
+#     else:
+#         model_path = target_dir
     
-    return model_path
+#     return model_path
 
-def load_vosk_model():
-    norm_src = normalize_lang(SOURCE_LANG)
-    model_url = MODEL_URLS.get(norm_src)
-    if not model_url:
-        raise ValueError(f"Unsupported source language: {SOURCE_LANG} (normalized: {norm_src})")
-    model_dir = os.path.join(MODEL_DIR, norm_src)
-    model_path = download_and_extract_model(model_url, model_dir)
-    print(f"✅ Loaded Vosk model for {norm_src} from {model_path}")
-    return Model(model_path)
+# def load_vosk_model():
+#     norm_src = normalize_lang(SOURCE_LANG)
+#     model_url = MODEL_URLS.get(norm_src)
+#     if not model_url:
+#         raise ValueError(f"Unsupported source language: {SOURCE_LANG} (normalized: {norm_src})")
+#     model_dir = os.path.join(MODEL_DIR, norm_src)
+#     model_path = download_and_extract_model(model_url, model_dir)
+#     print(f"✅ Loaded Vosk model for {norm_src} from {model_path}")
+#     return Model(model_path)
 
 
-# load initial model
-vosk_model = load_vosk_model()
+# # load initial model
+# vosk_model = load_vosk_model()
 
 # ---------------- Translation / TTS ----------------
 def translate(text, source_lang=None, target_lang=None):
@@ -159,7 +158,7 @@ def send_ws_message(payload: dict):
         print("[WS run error]", e)
 
 # ---------------- VAD helpers ----------------
-vad = webrtcvad.Vad(3)
+vad = webrtcvad.Vad(0)
 
 def is_speech(frame_bytes, sample_rate=16000):
     try:
@@ -219,10 +218,17 @@ def real_time_translation(mic_index=None):
 
             if in_speech and (silence_acc_ms >= end_silence_ms or utter_acc_ms >= max_utter_ms):
                 audio_bytes = b"".join(voiced_frames)
-                recognizer = KaldiRecognizer(vosk_model, sample_rate)
-                recognizer.AcceptWaveform(audio_bytes)
-                result = json.loads(recognizer.Result() or "{}")
-                text = (result.get("text") or "").strip()
+                recognizer = sr.Recognizer()
+                recognizer = sr.Recognizer()
+                audio_data = sr.AudioData(audio_bytes, sample_rate, 2)
+                try:
+                    text = recognizer.recognize_google(audio_data, language=SOURCE_LANG)
+                except sr.UnknownValueError:
+                    text = ""
+                except sr.RequestError as e:
+                    print(f"[Google Speech Error] {e}")
+                    text = ""
+
 
                 in_speech = False
                 silence_acc_ms = 0
@@ -266,7 +272,7 @@ def real_time_translation(mic_index=None):
 
 # ---------------- Persistent control listener ----------------
 async def ws_listener():
-    global SOURCE_LANG, TARGET_LANG, vosk_model
+    global SOURCE_LANG, TARGET_LANG
     while True:
         try:
             async with websockets.connect(WS_URL, max_size=None) as ws:
@@ -277,12 +283,12 @@ async def ws_listener():
                     if data.get("type") == "setLangs":
                         new_src = normalize_lang(data["src"])
                         new_tgt = normalize_lang(data["tgt"])
-                        if new_src != SOURCE_LANG:
-                            print(f"🔄 Reloading Vosk model {SOURCE_LANG} -> {new_src}")
-                            SOURCE_LANG = new_src
-                            vosk_model = load_vosk_model()
-                        else:
-                            SOURCE_LANG = new_src
+                        # if new_src != SOURCE_LANG:
+                        #     print(f"🔄 Reloading Vosk model {SOURCE_LANG} -> {new_src}")
+                        #     SOURCE_LANG = new_src
+                        #     vosk_model = load_vosk_model()
+                        # else:
+                        SOURCE_LANG = new_src
                         TARGET_LANG = new_tgt
                         print(f"✅ Updated languages: {SOURCE_LANG} -> {TARGET_LANG}")
 
