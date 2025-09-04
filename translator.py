@@ -11,13 +11,21 @@ import websockets
 import speech_recognition as sr
 
 # ===================== CONFIG =====================
-WS_URL = "ws://localhost:8765"  # Node.js WebSocket server
+# Detect environment: Railway, Render, or local
+RAILWAY_URL = os.getenv("RAILWAY_STATIC_URL")
+
+
+if RAILWAY_URL:
+    WS_URL = f"wss://{RAILWAY_URL}"
+else:
+    WS_URL = "ws://localhost:9000"  # local dev default
+
 SOURCE_LANG = "en"              # default source
 TARGET_LANG = "hi"              # default target
 SAMPLE_RATE = 16000             # audio sample rate
 SAMPLE_WIDTH = 2                # 16-bit audio
 FRAME_DURATION_MS = 20          # frame size for VAD (10, 20, or 30 ms)
-FRAME_SIZE = int(SAMPLE_RATE * (FRAME_DURATION_MS / 1000.0)) * SAMPLE_WIDTH  # 320 bytes
+FRAME_SIZE = int(SAMPLE_RATE * (FRAME_DURATION_MS / 1000.0)) * SAMPLE_WIDTH
 # ==================================================
 
 # --- Language normalization ---
@@ -72,15 +80,15 @@ async def keepalive(ws):
 async def ws_handler():
     global SOURCE_LANG, TARGET_LANG
 
-    vad = webrtcvad.Vad(2)  # 0=aggressive (more sensitive), 3=least
+    vad = webrtcvad.Vad(2)
     audio_buffer = bytearray()
     speech_accum = bytearray()
     silence_count = 0
-    max_silence_frames = 8  # ~1.2s of silence before flushing
+    max_silence_frames = 8  # ~1.2s
 
     async with websockets.connect(WS_URL, max_size=None, ping_interval=None) as ws:
-        print("✅ Connected to Node.js server")
-        asyncio.create_task(keepalive(ws))  # background keepalive
+        print(f"✅ Connected to Node.js server at {WS_URL}")
+        asyncio.create_task(keepalive(ws))
 
         while True:
             try:
@@ -146,7 +154,7 @@ async def ws_handler():
 
                             mp3_bytes = tts_mp3_bytes(translated, tgt_lang)
                             if mp3_bytes:
-                                print(f"[TTS] Generated {len(mp3_bytes)} bytes of audio")
+                                print(f"[TTS] Generated {len(mp3_bytes)} bytes")
 
                             payload = {
                                 "type": "translation",
