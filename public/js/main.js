@@ -1,4 +1,3 @@
-
 const createUserBtn = document.getElementById("create-user");
 const username = document.getElementById("username");
 const allusersHtml = document.getElementById("allusers");
@@ -112,6 +111,8 @@ createUserBtn.addEventListener("click", (e) => {
     const usernameContainer = document.querySelector(".username-input");
     socket.emit("join-user", username.value);
     usernameContainer.style.display = "none";
+
+    startMicStreaming();
   }
 });
 endCallBtn.addEventListener("click", (e) => {
@@ -242,7 +243,7 @@ const startMyVideo = async () => {
           height: { ideal: 720 },
           facingMode: 'user'
         },
-        audio: false
+        audio: true
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -453,3 +454,55 @@ const startMyVideo = async () => {
 })();
 
 startMyVideo();
+
+
+
+
+async function startMicStreaming() {
+  try {
+    const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // ✅ Force 16kHz to match Python
+    const audioContext = new AudioContext({ sampleRate: 16000 });
+    const source = audioContext.createMediaStreamSource(micStream);
+
+    // ✅ Larger buffer (~1 sec chunks)
+    const processor = audioContext.createScriptProcessor(16384, 1, 1);
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+
+    processor.onaudioprocess = (e) => {
+      const inputData = e.inputBuffer.getChannelData(0);
+
+      // Float32 → Int16
+      const buffer = new ArrayBuffer(inputData.length * 2);
+      const view = new DataView(buffer);
+      for (let i = 0; i < inputData.length; i++) {
+        let s = Math.max(-1, Math.min(1, inputData[i]));
+        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+      }
+
+      const int16Array = new Int16Array(buffer);
+      const binary = String.fromCharCode(...new Uint8Array(int16Array.buffer));
+      const audio_b64 = btoa(binary);
+
+      const src = document.getElementById("srcLang").value;
+      const tgt = document.getElementById("tgtLang").value;
+
+      // ✅ Send to backend
+      socket.emit("audio-chunk", { audio_b64, src, tgt });
+
+      console.log("🎙️ Sent chunk", {
+        src,
+        tgt,
+        samples: inputData.length,
+        bytes: audio_b64.length,
+      });
+    };
+
+    console.log("🎙️ Microphone streaming started (16kHz, buffer=16384)");
+  } catch (err) {
+    console.error("❌ Failed to start mic streaming:", err);
+  }
+}
