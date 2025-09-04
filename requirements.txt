@@ -1,5 +1,5 @@
 pyaudio
-vosk
+SpeechRecognition
 deep-translator
 gTTS
 pygame
