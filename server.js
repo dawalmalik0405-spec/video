@@ -92,7 +92,7 @@ socket.on("end-call", ({ from, to }) => {
 // -----------------
 // NEW: WebSocket for Python connection
 // -----------------
-const wss = new WebSocketServer({ port: 8765 });
+const wss = new WebSocketServer({ server });
 
 let pythonWs = null;
 
@@ -121,7 +121,8 @@ wss.on("connection", (ws) => {
 
 // -----------------
 
-server.listen(9000, () => {
-  console.log(`Server listening on port 9000`);
-  console.log(` http://localhost:9000 `);
+const PORT = process.env.PORT || 9000;
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server listening on port ${PORT}`);
 });
+
