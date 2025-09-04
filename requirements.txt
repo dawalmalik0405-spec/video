@@ -6,3 +6,4 @@ pygame
 webrtcvad
 websockets
 requests
+webrtcvad
