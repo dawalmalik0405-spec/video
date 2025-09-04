@@ -37,6 +37,19 @@ socket.on("set-langs", ({ src, tgt }) => {
   });
 });
 
+socket.on("audio-chunk", ({ audio_b64, src, tgt }) => {
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify({
+        type: "audio",
+        audio_b64,
+        src,
+        tgt
+      }));
+    }
+  });
+});
+
 
 
   socket.on("offer", ({ from, to, offer }) => {
@@ -79,7 +92,7 @@ socket.on("end-call", ({ from, to }) => {
 // -----------------
 // NEW: WebSocket for Python connection
 // -----------------
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ port: 8765 });
 
 let pythonWs = null;
 
@@ -108,12 +121,7 @@ wss.on("connection", (ws) => {
 
 // -----------------
 
-const PORT = process.env.PORT || 8080;
-
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server listening on port ${PORT}`);
-  console.log(`🌍 Public URL will be provided by Railway`);
+server.listen(9000, () => {
+  console.log(`Server listening on port 9000`);
+  console.log(` http://localhost:9000 `);
 });
-
-
-
